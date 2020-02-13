@@ -12,6 +12,8 @@ public class RecordImpl implements Record {
 
     private byte[] key;
     private byte[] value;
+    // Only for comparing time sequence in memory.
+    private long id = -1;
 
     public RecordImpl(byte[] key, byte[] value) {
         this.key = key;
@@ -74,5 +76,15 @@ public class RecordImpl implements Record {
 
     public int getApproximateLength() {
         return key.length + value.length + 2;
+    }
+
+    @Override
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    @Override
+    public long getId() {
+        return id;
     }
 }

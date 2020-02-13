@@ -12,4 +12,6 @@ public interface Record {
     byte[] getValue();
     void setValue(byte[] value);
     int getApproximateLength();
+    void setId(long id);
+    long getId();
 }
