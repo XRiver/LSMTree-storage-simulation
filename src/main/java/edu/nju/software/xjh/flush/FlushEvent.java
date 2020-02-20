@@ -17,6 +17,9 @@ public class FlushEvent implements DBEvent {
         return DBEventType.FLUSH;
     }
 
+    /**
+     * 事件处理完成时应当清理SkipList
+     */
     public SkipList getRecordList() {
         return recordList;
     }

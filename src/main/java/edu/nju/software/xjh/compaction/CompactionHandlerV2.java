@@ -13,7 +13,12 @@ class CompactionHandlerV2 implements CompactionHandler {
     }
 
     @Override
-    public void init() {
+    public void initAndStart() {
+
+    }
+
+    @Override
+    public void stopCompaction() {
 
     }
 }

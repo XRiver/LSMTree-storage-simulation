@@ -22,20 +22,36 @@ public class DB {
 
     private Config config;
     private String name;
-    private SolutionVersion version;
+    private SolutionVersion solutionVersion;
+
+    private VersionSet versionSet;
 
     public DB(Config config, String name) {
         this.config = config;
         this.name = name;
 
-        this.version = SolutionVersion.valueOf(config.getVal(Config.ConfigVar.SOLUTION_VERSION));
+        this.solutionVersion = SolutionVersion.valueOf(config.getVal(Config.ConfigVar.SOLUTION_VERSION));
 
         this.recordList = new RecordList(this, config);
-        //TODO 创建其他成员
-        this.compactionHandler = CompactionHandlerFactory.createCompactionHandler(version, this);
-        this.flushHandler = FlushHandlerFactory.createFlushHandler(version, this);
+        this.compactionHandler = CompactionHandlerFactory.createCompactionHandler(solutionVersion, this);
+        this.flushHandler = FlushHandlerFactory.createFlushHandler(solutionVersion, this);
         this.metricHandler = new MetricHandler();
         this.bus = new Bus(compactionHandler, flushHandler, metricHandler);
+
+        this.versionSet = new VersionSet();
+    }
+
+    public void init() {
+        LOG.info("Start running DB with solution version = " + solutionVersion);
+
+        flushHandler.initAndStart();
+        compactionHandler.initAndStart();
+
+        bus.start();
+    }
+
+    public void stop() {
+        bus.stopBus();
     }
 
     public void write(Record record) {
@@ -68,5 +84,9 @@ public class DB {
 
     public Bus getBus() {
         return bus;
+    }
+
+    public VersionSet getVersionSet() {
+        return versionSet;
     }
 }

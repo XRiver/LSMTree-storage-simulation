@@ -1,7 +1,9 @@
 package edu.nju.software.xjh.util;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 public class IOUtils {
 
@@ -17,5 +19,9 @@ public class IOUtils {
 
             readSize += ret;
         }
+    }
+
+    public static OutputStream createOutputStream(String filePath) throws FileNotFoundException {
+        return new FileOutputStreamWithMetrics(filePath);
     }
 }

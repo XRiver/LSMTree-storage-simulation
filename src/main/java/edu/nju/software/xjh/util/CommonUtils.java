@@ -1,5 +1,6 @@
 package edu.nju.software.xjh.util;
 
+import edu.nju.software.xjh.db.FileMeta;
 import sun.misc.Unsafe;
 import sun.nio.ch.DirectBuffer;
 
@@ -8,6 +9,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.Comparator;
+import java.util.List;
 
 public class CommonUtils {
     static final Unsafe THE_UNSAFE;
@@ -25,18 +28,18 @@ public class CommonUtils {
 
     static {
         THE_UNSAFE = (Unsafe) AccessController.doPrivileged(
-            new PrivilegedAction<Object>() {
-                @Override
-                public Object run() {
-                    try {
-                        Field f = Unsafe.class.getDeclaredField("theUnsafe");
-                        f.setAccessible(true);
-                        return f.get(null);
-                    } catch (NoSuchFieldException | IllegalAccessException e) {
-                        throw new Error();
+                new PrivilegedAction<Object>() {
+                    @Override
+                    public Object run() {
+                        try {
+                            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+                            f.setAccessible(true);
+                            return f.get(null);
+                        } catch (NoSuchFieldException | IllegalAccessException e) {
+                            throw new Error();
+                        }
                     }
                 }
-            }
         );
 
         BYTE_ARRAY_BASE_OFFSET = THE_UNSAFE.arrayBaseOffset(byte[].class);
@@ -61,6 +64,7 @@ public class CommonUtils {
 
     /**
      * Compare two byte arrays
+     *
      * @param buffer1 Byte array to compare
      * @param buffer2 Byte array to compare
      * @return 0 if equals; > 0 if buffer1 is larger than buffer2; , < 0 if buffer2 is smaller than buffer1
@@ -71,6 +75,7 @@ public class CommonUtils {
 
     /**
      * Compare two byte arrays
+     *
      * @param buffer1 Byte array to compare
      * @param offset1 Offset
      * @param length1 Length
@@ -225,5 +230,46 @@ public class CommonUtils {
             long address = ((DirectBuffer) buffer).address() + offset;
             return THE_UNSAFE.getLong(address);
         }
+    }
+
+    public static byte[] min(byte[] b1, byte[] b2) {
+        return compareByteArray(b1, b2) < 0 ? b1 : b2;
+    }
+
+    public static byte[] max(byte[] b1, byte[] b2) {
+        return compareByteArray(b1, b2) > 0 ? b1 : b2;
+    }
+
+    public static void sortByStartKey(List<FileMeta> fileMetas) {
+        fileMetas.sort((o1, o2) -> compareByteArray(o1.getStartRecord().getKey(), o2.getStartRecord().getKey()));
+    }
+
+    public static byte[] smallestStartKey(List<FileMeta> fileMetas) {
+        byte[] ret = null;
+        for (FileMeta fileMeta : fileMetas) {
+            if (ret == null) {
+                ret = fileMeta.getStartRecord().getKey();
+            } else {
+                ret = min(ret, fileMeta.getStartRecord().getKey());
+            }
+        }
+        return ret;
+    }
+
+    public static byte[] largestEndKey(List<FileMeta> fileMetas) {
+        byte[] ret = null;
+        for (FileMeta fileMeta : fileMetas) {
+            if (ret == null) {
+                ret = fileMeta.getEndRecord().getKey();
+            } else {
+                ret = max(ret, fileMeta.getEndRecord().getKey());
+            }
+        }
+        return ret;
+    }
+
+    public static boolean overlapInRange(FileMeta fileMeta, byte[] lower, byte[] upper) {
+        return CommonUtils.compareByteArray(fileMeta.getStartRecord().getKey(), upper) <= 0 ||
+                CommonUtils.compareByteArray(fileMeta.getEndRecord().getKey(), lower) >= 0;
     }
 }

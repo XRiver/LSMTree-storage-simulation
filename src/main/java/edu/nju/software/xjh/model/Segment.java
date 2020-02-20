@@ -42,4 +42,10 @@ public interface Segment {
      * @return 若没有记录，则会返回null
      */
     byte[] getEndKey();
+
+    /**
+     * 获取文件大小（字节数）。仅可在“只读”状态下调用。
+     * @return
+     */
+    long getSize();
 }

@@ -13,6 +13,7 @@ class SegmentImpl implements Segment {
 
     private boolean isWritable = true;
     private LinkedList<Record> records = new LinkedList<Record>();
+    private long size = 0;
 
     public boolean isWritable() {
         return isWritable;
@@ -38,8 +39,10 @@ class SegmentImpl implements Segment {
         if (isWritable) {
             os.write(VarInt.encodeSignedVarInt(MAGIC));
             os.write(VarInt.encodeSignedVarInt(records.size()));
+            size += 8;
             for (Record record : records) {
                 record.writeTo(os);
+                size += record.getApproximateLength();
             }
             isWritable = false;
         } else {
@@ -63,6 +66,10 @@ class SegmentImpl implements Segment {
         }
     }
 
+    public long getSize() {
+        return size;
+    }
+
     public static Segment createFrom(InputStream is) throws IOException {
         int magic = VarInt.decodeSignedVarInt(is);
         if (magic != MAGIC) {
@@ -71,8 +78,12 @@ class SegmentImpl implements Segment {
 
         int size = VarInt.decodeSignedVarInt(is);
         SegmentImpl ret = new SegmentImpl();
+        ret.size = 8;
+
         for (int i = 0; i < size; i++) {
-            ret.addRecord(RecordFactory.readFrom(is));
+            Record record = RecordFactory.readFrom(is);
+            ret.addRecord(record);
+            ret.size += record.getApproximateLength();
         }
         ret.isWritable = false;
 
