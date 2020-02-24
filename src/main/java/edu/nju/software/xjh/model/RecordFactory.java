@@ -9,4 +9,8 @@ public class RecordFactory {
         ret.readFrom(is);
         return ret;
     }
+
+    public static Record createEmpty() {
+        return new RecordImpl();
+    }
 }

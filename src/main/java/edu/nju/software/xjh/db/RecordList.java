@@ -12,6 +12,7 @@ class RecordList {
     private int maxCount;
 
     public RecordList(DB db, Config config) {
+        this.db = db;
         this.maxCount = Integer.parseInt(config.getVal(Config.ConfigVar.RECORD_LIST_SIZE));
         this.skipList = new SkipList();
     }

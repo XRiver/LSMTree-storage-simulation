@@ -1,36 +1,39 @@
 package edu.nju.software.xjh.flush;
 
+import edu.nju.software.xjh.compaction.CompactionEvent;
 import edu.nju.software.xjh.db.*;
+import edu.nju.software.xjh.db.event.DBEventType;
+import edu.nju.software.xjh.db.metric.MetricEvent;
 import edu.nju.software.xjh.model.Record;
 import edu.nju.software.xjh.model.Segment;
 import edu.nju.software.xjh.model.SegmentFactory;
+import edu.nju.software.xjh.util.FileOutputStreamWithMetrics;
 import edu.nju.software.xjh.util.IOUtils;
 import edu.nju.software.xjh.util.SkipList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 设计为于FlushHandler同步的模式.
  */
-public class FlushExecutorV1 {
+public class FlushExecutorV1 implements FlushExecutor {
 
     public Logger LOG = LogManager.getLogger(FlushExecutorV1.class);
 
-    private AtomicBoolean busy = new AtomicBoolean(false);
+    protected AtomicBoolean busy = new AtomicBoolean(false);
 
-    private final long fileSizeLimit;
-    private final String fileBasePath;
-    private final VersionSet versionSet;
+    protected final long fileSizeLimit;
+    protected final String fileBasePath;
+    protected final VersionSet versionSet;
+    protected final Bus bus;
 
-    public FlushExecutorV1(Config config, VersionSet versionSet, String fileBasePath) {
+    public FlushExecutorV1(Config config, Bus bus, VersionSet versionSet, String fileBasePath) {
         this.versionSet = versionSet;
+        this.bus = bus;
         this.fileBasePath = fileBasePath;
         this.fileSizeLimit =
                 Long.parseLong(config.getVal(Config.ConfigVar.SEGMENT_MAX_SIZE).split(",")[0]) * 1024 * 1024;
@@ -42,6 +45,9 @@ public class FlushExecutorV1 {
             return;
         }
 
+        long totalWrittenBytes = 0;
+        int createdFileCount = 0;
+
         long currentSize = 0;
         int currentRecordCount = 0;
         FileMeta fileMeta = null;
@@ -51,16 +57,20 @@ public class FlushExecutorV1 {
         VersionMod versionMod = new VersionMod(VersionModType.FLUSH);
 
         Iterator<Record> iterator = records.toIterator();
+        FileOutputStreamWithMetrics outputStream = null;
+        Record record = null;
         try {
 
             while (iterator.hasNext()) {
-                Record record = iterator.next();
+                record = iterator.next();
 
                 if (currentSegment == null) {
                     long fileId = versionSet.getNextFileId();
                     filePath = fileBasePath + "/" + fileId + ".data";
+                    LOG.info("Allocating file path:" + filePath);
 
                     currentSegment = SegmentFactory.createEmpty();
+                    createdFileCount++;
                     fileMeta = new FileMeta(fileId, filePath);
                     fileMeta.setStartRecord(record);
                 }
@@ -71,8 +81,10 @@ public class FlushExecutorV1 {
 
 
                 if (currentSize >= fileSizeLimit) {
-                    OutputStream outputStream = IOUtils.createOutputStream(filePath);
+                    outputStream = IOUtils.createOutputStream(filePath);
                     currentSegment.writeTo(outputStream);
+                    outputStream.close();
+                    totalWrittenBytes += outputStream.getWrittenBytes();
 
                     fileMeta.setLevel(0);
                     fileMeta.setFileSize(currentSegment.getSize());
@@ -89,11 +101,39 @@ public class FlushExecutorV1 {
                 }
             }
 
+            if (currentSegment != null) {
+                outputStream = IOUtils.createOutputStream(filePath);
+                currentSegment.writeTo(outputStream);
+                outputStream.close();
+                totalWrittenBytes += outputStream.getWrittenBytes();
+
+                fileMeta.setLevel(0);
+                fileMeta.setFileSize(currentSegment.getSize());
+                fileMeta.setEndRecord(record);
+                fileMeta.setRecordNumber(currentRecordCount);
+                versionMod.addFile(fileMeta);
+
+                LOG.info("Flushed new file:" + fileMeta);
+            }
+
             records.reset();
 
-            versionSet.applyNewVersion(versionMod);
+            if (createdFileCount > 0) {
+                versionSet.applyNewVersion(versionMod);
+
+                bus.push(new CompactionEvent(0));
+
+                MetricEvent metricEvent = new MetricEvent(DBEventType.FLUSH, 0);
+                metricEvent.setCreatedFiles(createdFileCount);
+                metricEvent.setCreatedBytes(totalWrittenBytes);
+                bus.push(metricEvent);
+
+                LOG.info("Flush complete. "+metricEvent);
+            } else {
+                LOG.info("Flushed an empty SkipList. Not creating new files...");
+            }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error(e.getMessage());
         } finally {
             busy.set(false);
         }

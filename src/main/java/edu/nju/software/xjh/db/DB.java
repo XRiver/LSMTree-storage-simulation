@@ -29,6 +29,7 @@ public class DB {
     public DB(Config config, String name) {
         this.config = config;
         this.name = name;
+        this.versionSet = new VersionSet();
 
         this.solutionVersion = SolutionVersion.valueOf(config.getVal(Config.ConfigVar.SOLUTION_VERSION));
 
@@ -37,8 +38,6 @@ public class DB {
         this.flushHandler = FlushHandlerFactory.createFlushHandler(solutionVersion, this);
         this.metricHandler = new MetricHandler();
         this.bus = new Bus(compactionHandler, flushHandler, metricHandler);
-
-        this.versionSet = new VersionSet();
     }
 
     public void init() {
@@ -51,6 +50,8 @@ public class DB {
     }
 
     public void stop() {
+        flushHandler.stopFlush();
+        compactionHandler.stopCompaction();
         bus.stopBus();
     }
 

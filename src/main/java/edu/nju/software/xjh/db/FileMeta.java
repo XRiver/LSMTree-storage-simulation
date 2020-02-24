@@ -14,6 +14,8 @@ public class FileMeta implements Comparable {
     private Record startRecord;
     private Record endRecord;
 
+    private int majorId = -1;
+
     public FileMeta(long fileId, String filePath) {
         this.fileId = fileId;
         this.filePath = filePath;
@@ -65,6 +67,14 @@ public class FileMeta implements Comparable {
 
     public void setLevel(int level) {
         this.level = level;
+    }
+
+    public int getMajorId() {
+        return majorId;
+    }
+
+    public void setMajorId(int majorId) {
+        this.majorId = majorId;
     }
 
     @Override

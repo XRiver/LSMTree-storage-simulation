@@ -26,4 +26,8 @@ public class FileOutputStreamWithMetrics extends OutputStream {
         inner.write(bytes, offset, length);
         byteCount += length;
     }
+
+    public long getWrittenBytes() {
+        return byteCount;
+    }
 }

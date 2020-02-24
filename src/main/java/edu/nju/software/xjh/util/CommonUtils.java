@@ -26,7 +26,14 @@ public class CommonUtils {
     static final boolean LITTLE_ENDIAN = ByteOrder.nativeOrder().equals(ByteOrder.LITTLE_ENDIAN);
     static final long BYTE_BUFFER_HB_FIELD_OFFSET;
 
+    public static final byte[] MIN_BYTE_ARRAY = new byte[0];
+    public static final byte[] MAX_BYTE_ARRAY = new byte[1024];
+
     static {
+        for(int i = 0; i < MAX_BYTE_ARRAY.length; i++) {
+            MAX_BYTE_ARRAY[i] = -1;
+        }
+
         THE_UNSAFE = (Unsafe) AccessController.doPrivileged(
                 new PrivilegedAction<Object>() {
                     @Override
@@ -272,4 +279,35 @@ public class CommonUtils {
         return CommonUtils.compareByteArray(fileMeta.getStartRecord().getKey(), upper) <= 0 ||
                 CommonUtils.compareByteArray(fileMeta.getEndRecord().getKey(), lower) >= 0;
     }
+
+    /**
+     * A shortcut to check whether rangeX covers rangeY
+     * @param xStart
+     * @param xEnd
+     * @param yStart
+     * @param yEnd
+     * @return xStart <= yStart && xEnd >= yEnd
+     */
+    public static boolean contains(byte[] xStart, byte[] xEnd, byte[] yStart, byte[] yEnd) {
+        return CommonUtils.compareByteArray(xStart,yStart) <= 0 && CommonUtils.compareByteArray(xEnd, yEnd) >= 0;
+    }
+
+    /**
+     * A shortcut to check whether rangeX covers rangeY
+     * @param xStart
+     * @param xEnd
+     * @param yStart
+     * @param yEnd
+     * @param startExclusive if true, condStart is xStart < yStart; otherwise xStart <= yStart
+     * @param endExclusive if true, condEnd is xEnd > yEnd; otherwise xEnd >= yEnd
+     * @return condStart && condEnd
+     */
+    public static boolean contains(byte[] xStart, byte[] xEnd, byte[] yStart, byte[] yEnd, boolean startExclusive, boolean endExclusive) {
+        int startComp = CommonUtils.compareByteArray(xStart, yStart);
+        int endComp = CommonUtils.compareByteArray(xEnd, yEnd);
+        boolean condStart = startExclusive ? (startComp < 0):(startComp <= 0);
+        boolean condEnd = endExclusive? (endComp > 0):(endComp >= 0);
+        return condStart && condEnd;
+    }
+
 }

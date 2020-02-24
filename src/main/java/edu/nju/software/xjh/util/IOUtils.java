@@ -21,7 +21,7 @@ public class IOUtils {
         }
     }
 
-    public static OutputStream createOutputStream(String filePath) throws FileNotFoundException {
+    public static FileOutputStreamWithMetrics createOutputStream(String filePath) throws FileNotFoundException {
         return new FileOutputStreamWithMetrics(filePath);
     }
 }

@@ -14,26 +14,24 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 class FlushHandlerV1 extends Thread implements FlushHandler {
 
-    public Logger LOG = LogManager.getLogger(FlushHandlerV1.class);
+    protected Logger LOG = LogManager.getLogger(FlushHandlerV1.class);
 
-    private final VersionSet versionSet;
-    private final Bus bus;
-    private final String fileDir;
+    protected final DB db;
+    protected final String fileDir;
 
+    protected VersionSet versionSet;
+    protected Bus bus;
     /*
     在目前单一DB（shard）的情况下，每个Handler只需要单线程执行任务而非一个线程池
      */
-    private FlushExecutorV1 flushThread;
-    private BlockingQueue<FlushEvent> eventQueue;
-    private AtomicBoolean running;
+    protected FlushExecutor flushThread;
+    protected BlockingQueue<FlushEvent> eventQueue;
+    protected AtomicBoolean running;
 
     public FlushHandlerV1(DB db) {
-        this.bus = db.getBus();
-        this.versionSet = db.getVersionSet();
+        this.db = db;
         this.fileDir = db.getConfig().getVal(Config.ConfigVar.FILE_BASE_PATH);
 
-        this.flushThread = new FlushExecutorV1(db.getConfig(), versionSet, fileDir);
-        this.eventQueue = new LinkedBlockingQueue<>();
         this.running = new AtomicBoolean(false);
     }
 
@@ -48,6 +46,12 @@ class FlushHandlerV1 extends Thread implements FlushHandler {
 
     @Override
     public void initAndStart() {
+        this.versionSet = db.getVersionSet();
+        this.bus = db.getBus();
+
+        this.flushThread = new FlushExecutorV1(db.getConfig(), db.getBus(), versionSet, fileDir);
+        this.eventQueue = new LinkedBlockingQueue<>();
+
         running.set(true);
         this.start();
     }
@@ -68,9 +72,8 @@ class FlushHandlerV1 extends Thread implements FlushHandler {
             LOG.debug("Waiting flush thread to become free...");
             while (flushThread.isBusy()) {}
 
-            LOG.debug("Assigning task to flush thread.");
+            LOG.info("Assigning task to flush thread.");
             flushThread.doFlush(event.getRecordList());
-            bus.push(new CompactionEvent(0));
         }
         LOG.info("Flush handler shut down");
     }

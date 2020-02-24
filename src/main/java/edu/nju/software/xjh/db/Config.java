@@ -41,7 +41,8 @@ public class Config {
         RECORD_LIST_SIZE("2000"),
         IO_THREADS("4"),
         SOLUTION_VERSION("V1"),
-        FILE_BASE_PATH("g:/data/");
+        FILE_BASE_PATH("g:/data/"),
+        FLUSH_SPLIT_PIECE("4");
 
         private String defaultVal;
 
