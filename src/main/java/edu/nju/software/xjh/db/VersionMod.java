@@ -1,5 +1,7 @@
 package edu.nju.software.xjh.db;
 
+import edu.nju.software.xjh.model.FileMeta;
+
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;

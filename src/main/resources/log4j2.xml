@@ -14,8 +14,8 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Logger name="edu.nju.software" level="info" />
-        <Root level="info">
+        <Logger name="edu.nju.software.xjh" level="warn" />
+        <Root level="warn">
             <AppenderRef ref="STDOUT" />
             <AppenderRef ref="FILE" />
         </Root>

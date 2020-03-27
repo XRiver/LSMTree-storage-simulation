@@ -4,6 +4,7 @@ import edu.nju.software.xjh.compaction.CompactionEvent;
 import edu.nju.software.xjh.db.*;
 import edu.nju.software.xjh.db.event.DBEventType;
 import edu.nju.software.xjh.db.metric.MetricEvent;
+import edu.nju.software.xjh.model.FileMeta;
 import edu.nju.software.xjh.model.Record;
 import edu.nju.software.xjh.model.Segment;
 import edu.nju.software.xjh.model.SegmentFactory;
@@ -108,7 +109,7 @@ public class FlushExecutorV1 implements FlushExecutor {
                 totalWrittenBytes += outputStream.getWrittenBytes();
 
                 fileMeta.setLevel(0);
-                fileMeta.setFileSize(currentSegment.getSize());
+                fileMeta.setFileSize(outputStream.getWrittenBytes());
                 fileMeta.setEndRecord(record);
                 fileMeta.setRecordNumber(currentRecordCount);
                 versionMod.addFile(fileMeta);
@@ -128,7 +129,7 @@ public class FlushExecutorV1 implements FlushExecutor {
                 metricEvent.setCreatedBytes(totalWrittenBytes);
                 bus.push(metricEvent);
 
-                LOG.info("Flush complete. "+metricEvent);
+                LOG.info("Flush complete. " + metricEvent);
             } else {
                 LOG.info("Flushed an empty SkipList. Not creating new files...");
             }

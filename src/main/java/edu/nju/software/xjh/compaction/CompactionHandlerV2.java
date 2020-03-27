@@ -1,6 +1,7 @@
 package edu.nju.software.xjh.compaction;
 
 import edu.nju.software.xjh.db.*;
+import edu.nju.software.xjh.model.FileMeta;
 import edu.nju.software.xjh.util.CommonUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,22 +18,23 @@ class CompactionHandlerV2 extends Thread implements CompactionHandler {
 
     public Logger LOG = LogManager.getLogger(CompactionHandlerV2.class);
 
+    private final DB db;
     private final VersionSet versionSet;
     private final Config config;
-    private final Bus bus;
+    private Bus bus;
     private final int levelCount;
     private final int lastLevel;
     private final int[] levelMinSize;
     private final int[] compactionMaxPickCount;
     private final long[] compactionMaxPickSize;
 
-    private CompactionExecutor compactionExecutorV1;
+    private CompactionExecutor compactionExecutorV2;
     private BlockingQueue<CompactionEvent> eventQueue;
     private AtomicBoolean running;
 
     public CompactionHandlerV2(DB db) {
+        this.db = db;
         this.versionSet = db.getVersionSet();
-        this.bus = db.getBus();
         this.config = db.getConfig();
 
         this.levelCount = Integer.parseInt(config.getVal(Config.ConfigVar.LEVEL_COUNT));
@@ -50,7 +52,6 @@ class CompactionHandlerV2 extends Thread implements CompactionHandler {
             this.compactionMaxPickSize[level] = Long.parseLong(maxPickSize[level]) * 1024 * 1024;
         }
 
-        this.compactionExecutorV1 = new CompactionExecutor();
         this.eventQueue = new LinkedBlockingQueue<>();
         this.running = new AtomicBoolean(false);
     }
@@ -69,10 +70,11 @@ class CompactionHandlerV2 extends Thread implements CompactionHandler {
             CompactionEvent event = eventQueue.poll();
             if (event == null) {
                 try {
-                    Thread.sleep(100);
+                    Thread.sleep(2000);
                 } catch (InterruptedException e) {
                     LOG.warn(e.getMessage());
                 }
+                LOG.warn("No compaction events available!");
                 continue;
             }
 
@@ -110,7 +112,7 @@ class CompactionHandlerV2 extends Thread implements CompactionHandler {
 
                     if (level1Files.size() == 0) {
                         upperLevelFiles = basicFiles;
-                        lowerLevelFiles = null;
+                        lowerLevelFiles = new ArrayList<>();
                     } else {
                         double ra = Double.MAX_VALUE;
 
@@ -214,14 +216,20 @@ class CompactionHandlerV2 extends Thread implements CompactionHandler {
             if (upperLevelFiles == null || upperLevelFiles.isEmpty()) {
                 LOG.info("Abandoned compaction schedule.");
             } else {
-                // LOG
-                // upperLevelFiles， lowerLevelFiles, level
-                //TODO 使用Executor进行compaction
+                LOG.info("Scheduling a compaction task on level " + level);
+                compactionExecutorV2.doCompactionV2(upperLevelFiles, lowerLevelFiles, level);
             }
         }
         LOG.info("Stopping compaction.");
     }
 
+    /**
+     * 根据允许选取的主键范围，筛选出可以参与compaction的L0文件
+     * @param minRowKey 主键最小值
+     * @param maxRowKey 主键最大值
+     * @param level0Files 所有L0文件
+     * @return 筛选出的可进行compaction的L0文件
+     */
     private List<FileMeta> calcPlan(byte[] minRowKey, byte[] maxRowKey, List<FileMeta> level0Files) {
         List<FileMeta> ret = new ArrayList<>();
         if (level0Files.size() == 0 || CommonUtils.compareByteArray(minRowKey, maxRowKey) >= 0) return ret;
@@ -322,6 +330,9 @@ class CompactionHandlerV2 extends Thread implements CompactionHandler {
 
     @Override
     public void initAndStart() {
+        this.bus = db.getBus();
+        this.compactionExecutorV2 = new CompactionExecutor(config, versionSet, bus);
+
         this.running.set(true);
         this.start();
     }

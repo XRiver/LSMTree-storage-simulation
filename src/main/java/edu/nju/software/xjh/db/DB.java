@@ -9,6 +9,9 @@ import edu.nju.software.xjh.model.Record;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 public class DB {
     public Logger LOG = LogManager.getLogger(DB.class);
 
@@ -44,7 +47,15 @@ public class DB {
         LOG.info("Start running DB with solution version = " + solutionVersion);
 
         flushHandler.initAndStart();
+
         compactionHandler.initAndStart();
+
+//        new Timer().schedule(new TimerTask() {
+//            @Override
+//            public void run() {
+//                compactionHandler.initAndStart();
+//            }
+//        }, 1000*20);
 
         bus.start();
     }

@@ -1,8 +1,4 @@
-package edu.nju.software.xjh.db;
-
-import edu.nju.software.xjh.model.Record;
-
-import java.util.concurrent.atomic.AtomicBoolean;
+package edu.nju.software.xjh.model;
 
 public class FileMeta implements Comparable {
     private long fileId;
@@ -95,6 +91,7 @@ public class FileMeta implements Comparable {
                 ", filePath='" + filePath + '\'' +
                 ", level=" + level +
                 ", recordNumber=" + recordNumber +
+                ", fileSize=" + fileSize +
                 '}';
     }
 

@@ -36,9 +36,9 @@ public class Config {
         LEVEL_COUNT("4"),
         LEVEL_MIN_SIZE("5,5,10,4"),
         COMPACTION_MAX_PICK_COUNT("5,5,3,2"), // 一次compaction最多使用上层文件数
-        COMPACTION_MAX_PICK_SIZE("999,40,100,180"), // 一次compaction最多使用上层文件大小，单位MB，其中最上与最下层不限制
-        SEGMENT_MAX_SIZE("4,10,40,100"), // 单位为MB
-        RECORD_LIST_SIZE("2000"),
+        COMPACTION_MAX_PICK_SIZE("999,4,6,999"), // 一次compaction最多使用上层文件大小，单位MB，其中最上不限制
+        SEGMENT_MAX_SIZE("2,2,4,8"), // 单位为MB
+        RECORD_LIST_SIZE("5000"),
         IO_THREADS("4"),
         SOLUTION_VERSION("V1"),
         FILE_BASE_PATH("g:/data/"),

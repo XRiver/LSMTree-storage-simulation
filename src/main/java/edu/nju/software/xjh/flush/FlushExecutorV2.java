@@ -4,6 +4,7 @@ import edu.nju.software.xjh.compaction.CompactionEvent;
 import edu.nju.software.xjh.db.*;
 import edu.nju.software.xjh.db.event.DBEventType;
 import edu.nju.software.xjh.db.metric.MetricEvent;
+import edu.nju.software.xjh.model.FileMeta;
 import edu.nju.software.xjh.model.Record;
 import edu.nju.software.xjh.model.Segment;
 import edu.nju.software.xjh.model.SegmentFactory;
@@ -15,7 +16,6 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class FlushExecutorV2 extends FlushExecutorV1 {
@@ -111,7 +111,7 @@ public class FlushExecutorV2 extends FlushExecutorV1 {
                 totalWrittenBytes += outputStream.getWrittenBytes();
 
                 fileMeta.setLevel(0);
-                fileMeta.setFileSize(currentSegment.getSize());
+                fileMeta.setFileSize(outputStream.getWrittenBytes());
                 fileMeta.setEndRecord(record);
                 fileMeta.setRecordNumber(currentRecordCount);
                 fileMeta.setMajorId(majorId);
@@ -133,6 +133,7 @@ public class FlushExecutorV2 extends FlushExecutorV1 {
                 bus.push(metricEvent);
 
                 LOG.info("Flush complete. "+metricEvent);
+
             } else {
                 LOG.info("Flushed an empty SkipList. Not creating new files...");
             }

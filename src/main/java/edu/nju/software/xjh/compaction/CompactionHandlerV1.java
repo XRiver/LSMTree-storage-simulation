@@ -1,6 +1,7 @@
 package edu.nju.software.xjh.compaction;
 
 import edu.nju.software.xjh.db.*;
+import edu.nju.software.xjh.model.FileMeta;
 import edu.nju.software.xjh.util.CommonUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,9 +16,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 class CompactionHandlerV1 extends Thread implements CompactionHandler {
     public Logger LOG = LogManager.getLogger(CompactionHandlerV1.class);
 
+    private final DB db;
     private final VersionSet versionSet;
     private final Config config;
-    private final Bus bus;
+    private Bus bus;
     private final int levelCount;
     private final int lastLevel;
     private final int[] levelMinSize;
@@ -29,8 +31,8 @@ class CompactionHandlerV1 extends Thread implements CompactionHandler {
     private AtomicBoolean running;
 
     public CompactionHandlerV1(DB db) {
+        this.db = db;
         this.versionSet = db.getVersionSet();
-        this.bus = db.getBus();
         this.config = db.getConfig();
 
         this.levelCount = Integer.parseInt(config.getVal(Config.ConfigVar.LEVEL_COUNT));
@@ -48,7 +50,6 @@ class CompactionHandlerV1 extends Thread implements CompactionHandler {
             this.compactionMaxPickSize[level] = Long.parseLong(maxPickSize[level]) * 1024 * 1024;
         }
 
-        this.compactionExecutorV1 = new CompactionExecutor();
         this.eventQueue = new LinkedBlockingQueue<>();
         this.running = new AtomicBoolean(false);
     }
@@ -67,10 +68,11 @@ class CompactionHandlerV1 extends Thread implements CompactionHandler {
             CompactionEvent event = eventQueue.poll();
             if (event == null) {
                 try {
-                    Thread.sleep(100);
+                    Thread.sleep(2000);
                 } catch (InterruptedException e) {
                     LOG.warn(e.getMessage());
                 }
+                LOG.warn("No compaction events available!");
                 continue;
             }
 
@@ -93,7 +95,7 @@ class CompactionHandlerV1 extends Thread implements CompactionHandler {
                 if (level == 0) { // 第0层的数据必须先对旧的数据（fileId小的）做compaction
                     if (basicFiles.size() > levelMinSize[0]) {
                         basicFiles.sort(Comparator.naturalOrder());
-                        upperLevelFiles = basicFiles.subList(0, levelMinSize[0]);
+                        upperLevelFiles = basicFiles.subList(0, compactionMaxPickCount[0]);
                     }
                 } else { // 第1、2层则优先选择尺寸小的文件，减少零碎
                     if (basicFiles.size() > levelMinSize[level]) {
@@ -119,7 +121,7 @@ class CompactionHandlerV1 extends Thread implements CompactionHandler {
                     //跟据上层文件的记录rk范围选取下层文件
                     lowerLevelFiles = new ArrayList<>();
                     for (FileMeta fileMeta : fileMetaList) {
-                        if (CommonUtils.overlapInRange(fileMeta, leftEnd, rightEnd)) {
+                        if (fileMeta.getLevel() == level + 1 && CommonUtils.overlapInRange(fileMeta, leftEnd, rightEnd)) {
                             lowerLevelFiles.add(fileMeta);
                         }
                     }
@@ -151,8 +153,8 @@ class CompactionHandlerV1 extends Thread implements CompactionHandler {
             if (upperLevelFiles == null || upperLevelFiles.isEmpty()) {
                 LOG.info("Abandoned compaction schedule.");
             } else {
-                // LOG
-                //TODO 使用Executor进行compaction
+                LOG.info("Scheduled a compaction task on level " + level);
+                compactionExecutorV1.doCompactionV1(upperLevelFiles, lowerLevelFiles, level);
             }
         }
         LOG.info("Stopping compaction.");
@@ -169,6 +171,9 @@ class CompactionHandlerV1 extends Thread implements CompactionHandler {
 
     @Override
     public void initAndStart() {
+        this.bus = db.getBus();
+        this.compactionExecutorV1 = new CompactionExecutor(config, versionSet, bus);
+
         this.running.set(true);
         this.start();
     }

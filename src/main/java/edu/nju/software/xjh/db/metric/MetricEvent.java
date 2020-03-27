@@ -12,6 +12,8 @@ public class MetricEvent implements DBEvent {
     private long deletedBytes = 0;
     private long createdBytes = 0;
 
+    private long upperConsumedBytes = 0;
+    private long lowerConsumedBytes = 0;
 
     public MetricEvent(DBEventType opType, int createAtLevel) {
         this.type = opType;
@@ -62,6 +64,22 @@ public class MetricEvent implements DBEvent {
         return DBEventType.METRIC;
     }
 
+    public long getUpperConsumedBytes() {
+        return upperConsumedBytes;
+    }
+
+    public void setUpperConsumedBytes(long upperConsumedBytes) {
+        this.upperConsumedBytes = upperConsumedBytes;
+    }
+
+    public long getLowerConsumedBytes() {
+        return lowerConsumedBytes;
+    }
+
+    public void setLowerConsumedBytes(long lowerConsumedBytes) {
+        this.lowerConsumedBytes = lowerConsumedBytes;
+    }
+
     @Override
     public String toString() {
         return "MetricEvent{" +
@@ -71,6 +89,8 @@ public class MetricEvent implements DBEvent {
                 ", createdFiles=" + createdFiles +
                 ", deletedBytes=" + deletedBytes +
                 ", createdBytes=" + createdBytes +
+                ", upperConsumedBytes=" + upperConsumedBytes +
+                ", lowerConsumedBytes=" + lowerConsumedBytes +
                 '}';
     }
 }

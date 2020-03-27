@@ -1,5 +1,7 @@
 package edu.nju.software.xjh.db;
 
+import edu.nju.software.xjh.model.FileMeta;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,5 +36,21 @@ public class Version {
             default:
                 throw new IllegalArgumentException("Version mod's type unknown:" + mod.getType());
        }
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder('[');
+        for (FileMeta fileMeta : fileMetaList) {
+            sb.append('(');
+            sb.append(fileMeta.getLevel());
+            sb.append(',');
+            sb.append(fileMeta.getFilePath());
+            sb.append(')');
+        }
+
+        return "Version{ id = " + versionId + " ," +
+                "count = " +fileMetaList.size() + "," +
+                "fileList = '" + sb.toString() + "'}";
     }
 }

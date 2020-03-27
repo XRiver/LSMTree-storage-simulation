@@ -27,6 +27,11 @@ public class FileOutputStreamWithMetrics extends OutputStream {
         byteCount += length;
     }
 
+    @Override
+    public void close() throws IOException {
+        inner.close();
+    }
+
     public long getWrittenBytes() {
         return byteCount;
     }

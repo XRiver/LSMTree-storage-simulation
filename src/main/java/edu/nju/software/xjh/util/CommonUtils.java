@@ -1,6 +1,6 @@
 package edu.nju.software.xjh.util;
 
-import edu.nju.software.xjh.db.FileMeta;
+import edu.nju.software.xjh.model.FileMeta;
 import sun.misc.Unsafe;
 import sun.nio.ch.DirectBuffer;
 
@@ -9,7 +9,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.Comparator;
 import java.util.List;
 
 public class CommonUtils {

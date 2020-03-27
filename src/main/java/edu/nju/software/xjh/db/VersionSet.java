@@ -32,10 +32,14 @@ public class VersionSet {
     }
 
     public synchronized void applyNewVersion(VersionMod mod) {
-        LOG.debug("Applying version mod:"+mod);
+
         Version next = new Version(getNextVersionId());
         currentVersion.applyModAsBase(next, mod);
         currentVersion = next;
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Applying version mod:" + mod);
+            LOG.debug("Current version:" + currentVersion);
+        }
     }
 
     public Version getCurrentVersion() {

@@ -87,6 +87,8 @@ class SegmentImpl implements Segment {
         }
         ret.isWritable = false;
 
+        is.close();
+
         return ret;
     }
 }
